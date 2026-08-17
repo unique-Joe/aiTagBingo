@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tag 宾果 · 猜测辅助</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-950 text-slate-200 min-h-screen antialiased">
+  <div id="app" class="max-w-[1800px] mx-auto p-4 lg:p-6 pr-[72px] lg:pr-[72px]">
+    <!-- Header -->
+    <header class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Tag 宾果 <span class="text-indigo-400">猜测辅助</span></h1>
+        <p class="text-sm text-slate-400 mt-1">粘贴 Excel 填入 5×5 Tag，管理成员描述，AI 辅助匹配绑定。</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <label class="thinking-toggle" title="开启后模型将进行深度思考（耗时更长）">
+          <input type="checkbox" id="check-thinking" class="sr-only">
+          <span class="thinking-switch"></span>
+          <span class="thinking-label">深度思考</span>
+        </label>
+        <button id="btn-demo" class="px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 hover:border-indigo-500 hover:text-indigo-400 transition">载入示例</button>
+        <button id="btn-load-prod" class="px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 hover:border-indigo-500 hover:text-indigo-400 transition">载入生产环境名单</button>
+        <button id="btn-export" class="px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 hover:border-indigo-500 hover:text-indigo-400 transition">导出 JSON</button>
+        <label class="px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 hover:border-indigo-500 hover:text-indigo-400 transition cursor-pointer">
+          导入 JSON
+          <input type="file" id="input-import" accept=".json" class="hidden">
+        </label>
+        <button id="btn-clear" class="px-3 py-2 text-sm rounded-lg bg-slate-900 border border-red-900/50 text-red-400 hover:bg-red-950 transition">清空全部</button>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5">
+      <!-- Sidebar: People -->
+      <aside class="panel flex flex-col h-[calc(100vh-140px)] min-h-[500px]">
+        <div class="mb-4">
+          <h2 class="text-sm font-semibold text-slate-100 uppercase tracking-wider">成员列表</h2>
+          <div class="mt-2 flex gap-2">
+            <input type="text" id="input-new-person" placeholder="输入姓名后回车" class="input flex-1 min-w-0">
+            <button id="btn-add-person" class="btn btn-primary">添加</button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs text-slate-500" id="people-count">0 人</span>
+          <button id="btn-cluster-panel" class="text-xs text-indigo-400 hover:text-indigo-300 hover:underline">打开集群分析</button>
+        </div>
+
+        <input type="text" id="input-search-people" placeholder="搜索成员姓名…" class="input w-full mb-2">
+
+        <ul id="people-list" class="flex-1 overflow-y-auto space-y-2 pr-1">
+          <!-- People items -->
+        </ul>
+
+        <!-- Person Editor -->
+        <div id="person-editor" class="mt-4 pt-4 border-t border-slate-700/50 hidden">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-semibold text-slate-100" id="editor-name">姓名</h3>
+            <button id="btn-delete-person" class="text-xs text-red-400 hover:text-red-300">删除</button>
+          </div>
+          <textarea id="input-description" rows="4" placeholder="在此填写该成员的自我介绍 / 与 tag 相关的描述…" class="textarea w-full resize-none"></textarea>
+          <div class="mt-2 flex gap-2">
+            <button id="btn-save-description" class="btn btn-secondary flex-1">保存描述</button>
+            <button id="btn-analyze-person" class="btn btn-primary flex-1">AI 单人分析</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center -->
+      <section class="flex flex-col gap-5 min-w-0">
+        <!-- Tag Board -->
+        <div class="panel">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold text-slate-100 uppercase tracking-wider">5 × 5 Tag 表格</h2>
+            <div class="flex items-center gap-3 text-xs text-slate-400">
+              <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-indigo-500"></span> 已绑定</span>
+              <span>选中任意格子后粘贴 Excel 数据即可自动填充</span>
+            </div>
+          </div>
+          <div id="tag-board" class="grid grid-cols-5 gap-2">
+            <!-- 25 tag cells -->
+          </div>
+        </div>
+
+        <!-- Analysis Panel -->
+        <div class="panel flex-1">
+          <div class="flex items-center gap-4 border-b border-slate-700/50 pb-3 mb-4">
+            <button class="tab-btn active" data-tab="single">单人分析</button>
+            <button class="tab-btn" data-tab="cluster">集群分析</button>
+          </div>
+
+          <!-- Single Analysis -->
+          <div id="panel-single" class="tab-panel">
+            <div id="single-empty" class="text-center py-10 text-slate-500 text-sm">
+              在左侧选择一个成员并填写描述后，点击“AI 单人分析”将任务加入队列。
+            </div>
+            <div id="single-content" class="hidden">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold text-slate-100">快速分析</h3>
+                <span class="text-xs text-slate-400">结果会进入右侧任务列表</span>
+              </div>
+              <button id="btn-analyze-single-quick" class="btn btn-primary">立即分析当前成员</button>
+            </div>
+          </div>
+
+          <!-- Cluster Analysis -->
+          <div id="panel-cluster" class="tab-panel hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div class="flex items-center gap-2">
+                <button id="btn-cluster-select-all" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 transition">全选</button>
+                <button id="btn-cluster-deselect" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 transition">清空选择</button>
+              </div>
+              <button id="btn-analyze-cluster" class="btn btn-primary">对选中成员进行集群分析</button>
+            </div>
+            <div id="cluster-list" class="space-y-2 mb-4 max-h-[280px] overflow-y-auto pr-1">
+              <!-- cluster member rows -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 px-4 py-3 rounded-xl shadow-lg text-sm text-white bg-slate-900 border border-slate-700 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none z-50"></div>
+  </div>
+
+  <!-- Task Center (collapsed right sidebar by default) -->
+  <aside id="task-center" class="task-center collapsed">
+    <div class="task-center-tab" id="task-center-tab" title="展开/折叠任务中心">
+      <span class="task-center-tab-text">任务中心</span>
+      <span class="task-count-badge" id="task-count-badge">0</span>
+    </div>
+    <div class="task-center-content">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-slate-100 uppercase tracking-wider">任务中心</h2>
+        <button id="btn-close-task-center" class="text-slate-400 hover:text-slate-200 lg:hidden">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-slate-500" id="task-summary">暂无任务</span>
+        <button id="btn-clear-tasks" class="text-xs text-slate-400 hover:text-slate-300">清空已完成</button>
+      </div>
+      <div id="task-list" class="flex-1 overflow-y-auto space-y-3 pr-1">
+        <div class="text-center text-slate-500 text-sm py-10">暂无分析任务</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Manual Binding Modal -->
+  <div id="binding-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-semibold text-slate-100">管理 Tag 绑定</h3>
+        <button id="btn-close-modal" class="text-slate-400 hover:text-slate-200 text-xl leading-none">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="mb-4">
+        <div class="text-xs text-slate-400 mb-1">Tag 内容</div>
+        <div id="modal-tag-text" class="text-sm font-medium text-slate-100 bg-slate-800 rounded-lg px-3 py-2 border border-slate-700"></div>
+      </div>
+      <div class="mb-3">
+        <div class="text-xs text-slate-400 mb-1">已绑定成员</div>
+        <div id="modal-bound-list" class="space-y-1 max-h-[160px] overflow-y-auto pr-1"></div>
+      </div>
+      <div>
+        <div class="text-xs text-slate-400 mb-1">添加绑定</div>
+        <input type="text" id="modal-person-search" placeholder="搜索成员姓名…" class="input w-full mb-2">
+        <div id="modal-person-list" class="modal-person-list max-h-[160px] overflow-y-auto pr-1 mb-2">
+          <div class="text-xs text-slate-500 py-2">输入关键词搜索成员</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Confirm Modal -->
+  <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card confirm-modal-card">
+      <div class="mb-3">
+        <h3 class="text-base font-semibold text-slate-100" id="confirm-modal-title">确认</h3>
+      </div>
+      <p class="text-sm text-slate-300 mb-5 leading-relaxed" id="confirm-modal-message"></p>
+      <div class="flex gap-3">
+        <button id="btn-confirm-cancel" class="btn btn-secondary flex-1">取消</button>
+        <button id="btn-confirm-ok" class="btn btn-primary flex-1">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
