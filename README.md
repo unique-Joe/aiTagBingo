@@ -39,7 +39,7 @@
 ```javascript
 const VOLCANO_CONFIG = {
   endpoint: 'https://ark.cn-beijing.volces.com/api/v3/responses',
-  apiKey: 'ark-b3d83d3b-6634-4bd4-88c2-4617bdc0e62e-a914a',
+  apiKey: 'ark-**************',
   model: 'doubao-seed-2-0-lite-260428',
 };
 ```
